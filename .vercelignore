@@ -1,0 +1,15 @@
+# never deploy local envs / caches / datasets / notebooks
+.venv/
+venv/
+.env*
+__pycache__/
+*.ipynb
+*.csv
+*.parquet
+*.pth
+*.onnx
+node_modules/
+tests/
+docs/
+dist/
+build/

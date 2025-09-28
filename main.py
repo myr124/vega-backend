@@ -53,104 +53,6 @@ def _extract_result(raw: Any) -> Any:
     return raw
 
 
-def compress_video_bytes(
-    input_bytes: bytes, original_filename: Optional[str] = None, target_ext: str = "mp4"
-) -> bytes:
-    """
-    Compress video bytes using the system ffmpeg CLI.
-
-    - If ffmpeg is not installed or compression fails, returns the original bytes.
-    - Writes temporary files to disk for ffmpeg to operate on.
-    """
-    if not shutil.which("ffmpeg"):
-        print("WARNING: ffmpeg not found on PATH; skipping compression")
-        return input_bytes
-
-    in_path = None
-    out_path = None
-    try:
-        # Choose input suffix from original filename if available
-        suffix = f".{target_ext}"
-        if original_filename:
-            try:
-                orig_suffix = Path(original_filename).suffix
-                if orig_suffix:
-                    suffix = orig_suffix
-            except Exception:
-                pass
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as in_f:
-            in_f.write(input_bytes)
-            in_path = in_f.name
-
-        fd, out_path = tempfile.mkstemp(suffix=f".{target_ext}")
-        # close the low-level fd; we'll open by name later
-        try:
-            os.close(fd)
-        except Exception:
-            pass
-
-        # Basic ffmpeg compression settings: re-encode with libx264 and moderate CRF.
-        # Apply duration/scale/fps limits to reduce model token usage and avoid INVALID_ARGUMENT
-        max_duration_sec = int(os.getenv("MAX_VIDEO_DURATION_SEC", "60") or "60")
-        target_height = int(os.getenv("VIDEO_TARGET_HEIGHT", "480") or "480")
-        target_fps = int(os.getenv("VIDEO_TARGET_FPS", "12") or "12")
-        vf = f"scale=-2:{target_height}:flags=lanczos"
-
-        cmd = [
-            "ffmpeg",
-            "-y",
-            "-i",
-            in_path,
-        ]
-        if max_duration_sec > 0:
-            cmd += ["-t", str(max_duration_sec)]
-        cmd += [
-            "-vf",
-            vf,
-            "-r",
-            str(target_fps),
-            "-vcodec",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "28",
-            "-acodec",
-            "aac",
-            "-b:a",
-            "96k",
-            "-movflags",
-            "+faststart",
-            out_path,
-        ]
-
-        # Run ffmpeg (capture output to avoid noisy logs)
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        with open(out_path, "rb") as f:
-            out_bytes = f.read()
-
-        # If compression produced a (reasonably) smaller file, return it; otherwise return original
-        if len(out_bytes) < len(input_bytes) or len(out_bytes) > 0:
-            return out_bytes
-        return input_bytes
-    except Exception as e:
-        print(f"WARNING: video compression failed: {e}")
-        return input_bytes
-    finally:
-        try:
-            if in_path and os.path.exists(in_path):
-                os.remove(in_path)
-        except Exception:
-            pass
-        try:
-            if out_path and os.path.exists(out_path):
-                os.remove(out_path)
-        except Exception:
-            pass
-
-
 def _extract_json_objects_from_text(text: str) -> list:
     """Attempt to extract any JSON objects/arrays embedded in a text blob.
 
@@ -392,23 +294,6 @@ async def run_agent(
             print(
                 f"[run_agent] Received video file upload; bytes={len(video_bytes) if video_bytes else 0} mime={mime_type}"
             )
-
-        if video_bytes:
-            # Try to compress the video bytes in a thread to avoid blocking the event loop
-            try:
-                compressed_bytes = await asyncio.to_thread(
-                    compress_video_bytes, video_bytes, original_filename, "mp4"
-                )
-            except Exception as e:
-                print(f"WARNING: compression thread failed: {e}")
-                compressed_bytes = video_bytes
-
-            base64_data = base64.b64encode(compressed_bytes).decode("utf-8")
-            file_data = types.Blob(mime_type=mime_type or "video/mp4", data=base64_data)
-            parts.append(types.Part(inline_data=file_data))
-
-        if not parts:
-            parts.append(types.Part(text="Process this video for YouTube Shorts."))
 
         new_message = types.Content(parts=parts, role="user")
         events = list(

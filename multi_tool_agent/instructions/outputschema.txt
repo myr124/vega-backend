@@ -1,0 +1,75 @@
+{
+  "video": {
+    "title": "string",
+    "category": "string",
+    "length_sec": "integer"
+  },
+  "metrics": {
+    "estimated_view_count": "integer",
+    "estimated_like_count": "integer",
+    "estimated_dislike_count": "integer",
+    "avg_retention_rate": "number",
+    "avg_watch_time_sec": "integer",
+    "viewing_likelihood": "number",
+    "like_probability": "number",
+    "dislike_probability": "number"
+  },
+  "personas": [
+    {
+      "name": "string",                      // new: plain display name or original persona label
+      "vertical": "string",                  // e.g. "music", "gaming"
+      "level": "string",                     // e.g. "beginner", "expert"
+      "randomized_reviewer_name": "string",  // anonymized / seeded random name
+      "key_observations": ["string"],        // short bullet-point insights
+      "predicted_view_count": "integer",
+      "predicted_retention_rate": "number",
+      "predicted_like_probability": "number",
+      "predicted_dislike_probability": "number"
+    }
+  ],
+  "audience_segments": [
+    {
+      "segment_name": "string",
+      "randomized_representative": "string",
+      "vertical": "string",
+      "level": "string",
+      "size_estimate": "integer",
+      "viewing_likelihood": "number",
+      "retention_rate": "number",
+      "like_probability": "number",
+      "dislike_probability": "number"
+    }
+  ],
+  "target_demographics": [
+    {
+      "demographic": "string",
+      "randomized_representative": "string",
+      "age_range": "string",
+      "regions": ["string"],
+      "predicted_response": {
+        "viewing_likelihood": "number",
+        "retention_rate": "number",
+        "like_probability": "number"
+      }
+    }
+  ],
+  "retention": {
+    "high_retention_segments": ["string"],
+    "low_retention_segments": ["string"],
+    "key_dropoff_timestamps_sec": ["integer"]
+  },
+  "suggestions": {
+    "top_actions": ["string"],
+    "thumbnail_titles_to_test": ["string"],
+    "hook_scripts": ["string"]
+  },
+  "advertising": {
+    "suitable_sponsors": ["string"],
+    "ad_formats": ["string"],
+    "integration_ideas": ["string"]
+  },
+  "methodology": {
+    "notes": "string",
+    "assumptions": ["string"]
+  }
+}
